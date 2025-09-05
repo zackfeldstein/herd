@@ -4,7 +4,7 @@ Kubernetes-native values merging logic for Helm charts.
 
 import yaml
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from copy import deepcopy
 import kubernetes.client as k8s_client
 from kubernetes.client.rest import ApiException
