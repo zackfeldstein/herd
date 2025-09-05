@@ -1,0 +1,45 @@
+apiVersion: herd.suse.com/v1
+kind: Stack
+metadata:
+  name: debug-test
+  namespace: default
+  labels:
+    test: debug
+spec:
+  env: dev
+  targets:
+    # Try using selector instead of explicit cluster IDs
+    selector:
+      matchLabels:
+        # These are common default labels - adjust as needed
+        provisioner.cattle.io/name: "rke2"
+    # If selector doesn't work, uncomment and update the cluster ID:
+    # clusterIds:
+    #   - c-m-xxxxx  # Replace with your actual cluster ID
+  charts:
+    - name: nginx
+      repo: https://charts.bitnami.com/bitnami
+      version: "18.1.9"
+      namespace: debug-test
+      releaseName: debug-nginx
+      values:
+        inline:
+          # Ultra-minimal configuration
+          replicaCount: 1
+          service:
+            type: ClusterIP
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+          # Disable everything optional
+          ingress:
+            enabled: false
+          metrics:
+            enabled: false
+          serviceAccount:
+            create: false
+      
+      wait: false  # Don't wait to avoid timeouts during testing
+      timeout: "2m"
+      createNamespace: true

@@ -10,8 +10,7 @@ spec:
   env: dev
   targets:
     clusterIds:
-      - c-m-abc123
-      - c-m-def456
+      - c-s8khx
   charts:
     - name: kubeflow
       repo: https://charts.kubeflow.org

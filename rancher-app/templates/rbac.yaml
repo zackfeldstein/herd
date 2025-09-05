@@ -34,6 +34,11 @@ rules:
   resources: ["configmaps", "secrets"]
   verbs: ["get", "list", "watch"]
 
+# Fleet Bundle management
+- apiGroups: ["fleet.cattle.io"]
+  resources: ["bundles", "clusters", "gitrepos"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
 # Events for logging
 - apiGroups: [""]
   resources: ["events"]

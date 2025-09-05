@@ -8,6 +8,8 @@ import logging
 import asyncio
 from typing import Dict, Any, List, Optional
 from datetime import datetime
+from aiohttp import web
+import threading
 
 from .stack_manager import StackManager
 from .models import StackSpec, StackStatus, ChartDeployment, DeploymentPhase
@@ -17,13 +19,34 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+async def health_check(request):
+    """Health check endpoint for Kubernetes probes."""
+    return web.Response(text="OK", status=200)
+
+
+async def start_health_server():
+    """Start the health check HTTP server."""
+    app = web.Application()
+    app.router.add_get('/healthz', health_check)
+    
+    runner = web.AppRunner(app)
+    await runner.setup()
+    
+    site = web.TCPSite(runner, '0.0.0.0', 8080)
+    await site.start()
+    logger.info("Health check server started on port 8080")
+
+
 @kopf.on.startup()
-def configure(settings: kopf.OperatorSettings, **_):
+async def configure(settings: kopf.OperatorSettings, **_):
     """Configure the operator."""
     settings.posting.level = logging.INFO
     settings.watching.connect_timeout = 60
     settings.watching.server_timeout = 60
     logger.info("Herd Stack Controller starting up...")
+    
+    # Start health check server
+    await start_health_server()
 
 
 @kopf.on.create('herd.suse.com', 'v1', 'stacks')
@@ -181,7 +204,7 @@ async def deploy_stack(
             
             # Deploy chart to all target clusters
             chart_deployments = await stack_manager.deploy_chart_to_clusters(
-                chart, target_clusters, stack_spec.env, namespace
+                chart, target_clusters, stack_spec.env, name, namespace
             )
             
             all_deployments.extend(chart_deployments)
@@ -251,7 +274,7 @@ async def delete_stack_resources(
             
             # Delete chart from all target clusters
             await stack_manager.delete_chart_from_clusters(
-                chart, target_clusters
+                chart, name
             )
         
         logger.info(f"Stack {namespace}/{name} resources deleted")
@@ -282,7 +305,7 @@ async def update_stack_status(
             "phase": phase.value,
             "message": message,
             "targetClusters": target_clusters,
-            "deployments": [d.dict() for d in deployments],
+            "deployments": [d.model_dump() for d in deployments],
             "lastReconcileTime": datetime.utcnow().isoformat() + "Z",
             "observedGeneration": 1,
             "conditions": [

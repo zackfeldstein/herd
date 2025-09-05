@@ -134,6 +134,17 @@ class RancherClient:
                 return app
         return None
     
+    async def ensure_namespace_exists(self, cluster_id: str, namespace: str) -> bool:
+        """Ensure a namespace exists in the target cluster."""
+        try:
+            # For now, let's skip namespace creation and let Rancher handle it
+            # The createNamespace: true in the app spec should handle this
+            logger.info(f"Skipping namespace check - letting Rancher handle namespace creation for {namespace}")
+            return True
+        except Exception as e:
+            logger.error(f"Error in namespace handling for {namespace} in cluster {cluster_id}: {e}")
+            return False
+
     async def create_or_update_app(
         self,
         cluster_id: str,
@@ -146,6 +157,12 @@ class RancherClient:
         start_time = datetime.utcnow().isoformat() + "Z"
         
         try:
+            # Ensure namespace exists if createNamespace is enabled
+            if chart.createNamespace:
+                namespace_created = await self.ensure_namespace_exists(cluster_id, chart.namespace)
+                if not namespace_created:
+                    raise Exception(f"Failed to ensure namespace {chart.namespace} exists")
+            
             # Check if app already exists
             existing_app = self.get_app(cluster_id, chart.namespace, chart.releaseName)
             

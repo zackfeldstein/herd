@@ -17,8 +17,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy controller code
 COPY controller/ ./controller/
 
-# Create non-root user
-RUN groupadd -r herd && useradd -r -g herd herd
+# Create non-root user with proper UID/GID and home directory
+RUN groupadd -r herd --gid 1000 && useradd -r -g herd --uid 1000 --create-home herd
 RUN chown -R herd:herd /app
 USER herd
 

@@ -1,0 +1,41 @@
+apiVersion: herd.suse.com/v1
+kind: Stack
+metadata:
+  name: super-simple
+  namespace: default
+  labels:
+    test: basic
+spec:
+  env: dev
+  targets:
+    clusterIds:
+      - local  # Update this to your actual cluster ID
+  charts:
+    - name: nginx
+      repo: https://charts.bitnami.com/bitnami
+      version: "18.1.9"
+      namespace: test-nginx
+      releaseName: simple-nginx
+      values:
+        inline:
+          # Minimal nginx configuration
+          replicaCount: 1
+          service:
+            type: ClusterIP
+            port: 80
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+          # Disable ingress and other complex features
+          ingress:
+            enabled: false
+          metrics:
+            enabled: false
+      
+      wait: true
+      timeout: "3m"
+      createNamespace: true
