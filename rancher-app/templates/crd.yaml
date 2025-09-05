@@ -1,0 +1,249 @@
+{{- if .Values.rbac.create }}
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: stacks.herd.suse.com
+  labels:
+    {{- include "herd.labels" . | nindent 4 }}
+spec:
+  group: herd.suse.com
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            required:
+            - env
+            - targets
+            - charts
+            properties:
+              env:
+                type: string
+                description: "Environment name (e.g., dev, staging, prod)"
+              targets:
+                type: object
+                description: "Target cluster specification"
+                oneOf:
+                - required: [clusterIds]
+                - required: [selector]
+                properties:
+                  clusterIds:
+                    type: array
+                    description: "Explicit list of cluster IDs"
+                    items:
+                      type: string
+                  selector:
+                    type: object
+                    description: "Selector to match clusters"
+                    required: [matchLabels]
+                    properties:
+                      matchLabels:
+                        type: object
+                        description: "Labels to match clusters against"
+                        additionalProperties:
+                          type: string
+              charts:
+                type: array
+                description: "List of charts to deploy"
+                items:
+                  type: object
+                  required:
+                  - name
+                  - repo
+                  - version
+                  - namespace
+                  - releaseName
+                  properties:
+                    name:
+                      type: string
+                      description: "Name of the Helm chart"
+                    repo:
+                      type: string
+                      description: "Helm repository URL or name"
+                    version:
+                      type: string
+                      description: "Chart version"
+                    namespace:
+                      type: string
+                      description: "Target Kubernetes namespace"
+                    releaseName:
+                      type: string
+                      description: "Helm release name"
+                    values:
+                      type: object
+                      description: "Values configuration"
+                      properties:
+                        configMapRefs:
+                          type: array
+                          description: "References to ConfigMaps containing values"
+                          items:
+                            type: object
+                            required: [name]
+                            properties:
+                              name:
+                                type: string
+                              namespace:
+                                type: string
+                              key:
+                                type: string
+                                default: "values.yaml"
+                        secretRefs:
+                          type: array
+                          description: "References to Secrets containing values"
+                          items:
+                            type: object
+                            required: [name]
+                            properties:
+                              name:
+                                type: string
+                              namespace:
+                                type: string
+                              key:
+                                type: string
+                                default: "values.yaml"
+                        perClusterConfigMapRef:
+                          type: object
+                          description: "ConfigMap containing per-cluster overrides"
+                          required: [name]
+                          properties:
+                            name:
+                              type: string
+                            namespace:
+                              type: string
+                        inline:
+                          type: object
+                          description: "Inline values (highest precedence)"
+                          x-kubernetes-preserve-unknown-fields: true
+                    dependsOn:
+                      type: array
+                      description: "List of charts this depends on"
+                      items:
+                        type: string
+                    wait:
+                      type: boolean
+                      description: "Wait for deployment to complete"
+                      default: true
+                    timeout:
+                      type: string
+                      description: "Timeout for deployment"
+                      default: "10m"
+                    createNamespace:
+                      type: boolean
+                      description: "Create namespace if it doesn't exist"
+                      default: true
+          status:
+            type: object
+            properties:
+              phase:
+                type: string
+                enum:
+                - Pending
+                - Deploying
+                - Deployed
+                - Failed
+                - Deleting
+                description: "Current phase of the stack deployment"
+              message:
+                type: string
+                description: "Human-readable message about the current status"
+              observedGeneration:
+                type: integer
+                format: int64
+                description: "The generation observed by the controller"
+              conditions:
+                type: array
+                description: "Conditions represent the latest available observations"
+                items:
+                  type: object
+                  required:
+                  - type
+                  - status
+                  properties:
+                    type:
+                      type: string
+                      description: "Type of condition"
+                    status:
+                      type: string
+                      enum:
+                      - "True"
+                      - "False"
+                      - "Unknown"
+                      description: "Status of the condition"
+                    reason:
+                      type: string
+                      description: "Reason for the condition's last transition"
+                    message:
+                      type: string
+                      description: "Human-readable message about the transition"
+                    lastTransitionTime:
+                      type: string
+                      format: date-time
+                      description: "Last time the condition transitioned"
+              deployments:
+                type: array
+                description: "Status of individual chart deployments"
+                items:
+                  type: object
+                  properties:
+                    chartName:
+                      type: string
+                    clusterId:
+                      type: string
+                    releaseName:
+                      type: string
+                    namespace:
+                      type: string
+                    version:
+                      type: string
+                    status:
+                      type: string
+                      enum:
+                      - Pending
+                      - Deploying
+                      - Deployed
+                      - Failed
+                    message:
+                      type: string
+                    lastUpdated:
+                      type: string
+                      format: date-time
+              targetClusters:
+                type: array
+                description: "Resolved target cluster IDs"
+                items:
+                  type: string
+              lastReconcileTime:
+                type: string
+                format: date-time
+                description: "Time of last reconciliation"
+    additionalPrinterColumns:
+    - name: Phase
+      type: string
+      description: "Current phase"
+      jsonPath: .status.phase
+    - name: Clusters
+      type: integer
+      description: "Number of target clusters"
+      jsonPath: .status.targetClusters[*]
+    - name: Charts
+      type: integer
+      description: "Number of charts"
+      jsonPath: .spec.charts[*]
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp
+    subresources:
+      status: {}
+  scope: Namespaced
+  names:
+    plural: stacks
+    singular: stack
+    kind: Stack
+    shortNames:
+    - st
+{{- end }}

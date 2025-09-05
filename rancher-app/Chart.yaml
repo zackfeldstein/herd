@@ -1,0 +1,23 @@
+apiVersion: v2
+name: herd-stack-controller
+description: A Kubernetes-native stack controller for deploying Helm charts across Rancher-managed clusters
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/suse/herd
+sources:
+  - https://github.com/suse/herd
+keywords:
+  - rancher
+  - helm
+  - stack
+  - deployment
+  - ai
+  - ml
+maintainers:
+  - name: SUSE AI Stacks Team
+    email: ai-stacks@suse.com
+annotations:
+  catalog.cattle.io/certified: rancher
+  catalog.cattle.io/namespace: herd-system
+  catalog.cattle.io/release-name: herd-controller

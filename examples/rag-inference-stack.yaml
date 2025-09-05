@@ -1,0 +1,83 @@
+apiVersion: herd.suse.com/v1
+kind: Stack
+metadata:
+  name: rag-inference
+  namespace: default
+  labels:
+    team: ai-ml
+    environment: production
+  annotations:
+    description: "RAG inference stack with GPU Operator and Qdrant"
+    herd.suse.com/managed-by: "herd-controller"
+spec:
+  env: prod
+  targets:
+    selector:
+      matchLabels:
+        env: prod
+        workload: ai-ml
+  charts:
+    - name: gpu-operator
+      repo: https://helm.ngc.nvidia.com/nvidia
+      version: "23.9.1"
+      namespace: gpu-operator
+      releaseName: gpu-operator
+      values:
+        configMapRefs:
+          - name: gpu-operator-values
+            key: values.yaml
+        inline:
+          operator:
+            defaultRuntime: containerd
+          driver:
+            enabled: true
+            version: "535.129.03"
+      wait: true
+      timeout: "15m"
+      createNamespace: true
+
+    - name: qdrant
+      repo: https://qdrant.github.io/qdrant-helm
+      version: "0.7.4"
+      namespace: vector-db
+      releaseName: qdrant
+      values:
+        configMapRefs:
+          - name: qdrant-values
+            key: values.yaml
+        perClusterConfigMapRef:
+          name: cluster-overrides
+        inline:
+          persistence:
+            size: "100Gi"
+          resources:
+            requests:
+              memory: "4Gi"
+              cpu: "2"
+            limits:
+              memory: "8Gi"
+              cpu: "4"
+      wait: true
+      timeout: "10m"
+      createNamespace: true
+
+    - name: triton-inference-server
+      repo: https://helm.ngc.nvidia.com/nvidia
+      version: "1.0.0"
+      namespace: inference
+      releaseName: triton
+      values:
+        configMapRefs:
+          - name: triton-values
+            key: values.yaml
+        inline:
+          image:
+            tag: "23.10-py3"
+          resources:
+            limits:
+              nvidia.com/gpu: 1
+      dependsOn:
+        - gpu-operator
+      wait: true
+      timeout: "10m"
+      createNamespace: true

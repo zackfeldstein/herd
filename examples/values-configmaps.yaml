@@ -1,0 +1,263 @@
+# Example ConfigMaps containing Helm values for the Stack examples
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gpu-operator-values
+  namespace: default
+data:
+  values.yaml: |
+    operator:
+      defaultRuntime: containerd
+      runtimeClass: nvidia
+    
+    driver:
+      enabled: true
+      repository: nvcr.io/nvidia
+      image: driver
+      version: "535.129.03"
+    
+    toolkit:
+      enabled: true
+    
+    devicePlugin:
+      enabled: true
+      version: v0.14.3
+    
+    dcgmExporter:
+      enabled: true
+    
+    gfd:
+      enabled: true
+    
+    migManager:
+      enabled: false
+    
+    validator:
+      plugin:
+        env:
+          - name: WITH_WORKLOAD
+            value: "false"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qdrant-values
+  namespace: default
+data:
+  values.yaml: |
+    replicaCount: 2
+    
+    image:
+      repository: qdrant/qdrant
+      tag: "v1.7.3"
+      pullPolicy: IfNotPresent
+    
+    service:
+      type: ClusterIP
+      port: 6333
+      grpcPort: 6334
+    
+    persistence:
+      enabled: true
+      storageClass: ""
+      accessMode: ReadWriteOnce
+      size: 50Gi
+    
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "1"
+      limits:
+        memory: "4Gi"
+        cpu: "2"
+    
+    config:
+      cluster:
+        enabled: true
+      storage:
+        hnsw_index:
+          on_disk: true
+        optimizers:
+          default_segment_number: 2
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: triton-values
+  namespace: default
+data:
+  values.yaml: |
+    image:
+      repository: nvcr.io/nvidia/tritonserver
+      tag: "23.10-py3"
+      pullPolicy: IfNotPresent
+    
+    service:
+      type: ClusterIP
+      ports:
+        http: 8000
+        grpc: 8001
+        metrics: 8002
+    
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "8Gi"
+        cpu: "4"
+        nvidia.com/gpu: 1
+    
+    modelRepository:
+      path: "/models"
+      storageClass: "fast-ssd"
+      size: "100Gi"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubeflow-values
+  namespace: default
+data:
+  values.yaml: |
+    istio:
+      enabled: true
+      gateway:
+        selector:
+          istio: ingressgateway
+    
+    cert-manager:
+      enabled: true
+    
+    knative:
+      enabled: true
+    
+    katib:
+      enabled: true
+    
+    notebooks:
+      enabled: true
+    
+    pipelines:
+      enabled: true
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jupyterhub-values
+  namespace: default
+data:
+  values.yaml: |
+    hub:
+      db:
+        type: sqlite-pvc
+        pvc:
+          storageClassName: "standard"
+          accessModes:
+            - ReadWriteOnce
+          storage: 1Gi
+      
+      config:
+        JupyterHub:
+          admin_access: true
+          authenticator_class: dummy
+        
+        Authenticator:
+          auto_login: false
+          admin_users:
+            - admin
+    
+    proxy:
+      secretToken: "generated-secret-token-change-me"
+    
+    singleuser:
+      image:
+        name: jupyter/datascience-notebook
+        tag: "latest"
+      
+      storage:
+        type: dynamic
+        capacity: 10Gi
+        homeMountPath: /home/jovyan
+        dynamic:
+          storageClass: "standard"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-overrides
+  namespace: default
+data:
+  c-m-gpu01.yaml: |
+    # GPU cluster specific overrides
+    resources:
+      requests:
+        memory: "8Gi"
+        cpu: "4"
+      limits:
+        memory: "16Gi"
+        cpu: "8"
+    
+    persistence:
+      size: "200Gi"
+      storageClass: "fast-ssd"
+    
+    nodeSelector:
+      node-type: gpu-node
+      gpu-memory: high
+  
+  c-m-cpu01.yaml: |
+    # CPU cluster specific overrides
+    resources:
+      requests:
+        memory: "2Gi"
+        cpu: "1"
+      limits:
+        memory: "4Gi"
+        cpu: "2"
+    
+    persistence:
+      size: "50Gi"
+      storageClass: "standard"
+    
+    nodeSelector:
+      node-type: cpu-node
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: herd-env-prod
+  namespace: default
+data:
+  values.yaml: |
+    # Production environment overlay
+    resources:
+      requests:
+        memory: "4Gi"
+        cpu: "2"
+      limits:
+        memory: "8Gi"
+        cpu: "4"
+    
+    persistence:
+      size: "100Gi"
+      storageClass: "premium-ssd"
+    
+    replicaCount: 3
+    
+    nodeSelector:
+      node-pool: production
+      instance-type: high-memory
+    
+    tolerations:
+      - key: "production-only"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"

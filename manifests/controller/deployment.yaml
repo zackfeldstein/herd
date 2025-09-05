@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: herd-controller
+  namespace: herd-system
+  labels:
+    app.kubernetes.io/name: herd
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/version: "0.1.0"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: herd
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: herd
+        app.kubernetes.io/component: controller
+        app.kubernetes.io/version: "0.1.0"
+    spec:
+      serviceAccountName: herd-controller
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: controller
+        image: herd-controller:latest
+        imagePullPolicy: Always
+        env:
+        - name: RANCHER_URL
+          valueFrom:
+            secretKeyRef:
+              name: herd-config
+              key: rancher-url
+        - name: RANCHER_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: herd-config
+              key: rancher-token
+        - name: RANCHER_VERIFY_SSL
+          valueFrom:
+            configMapKeyRef:
+              name: herd-config
+              key: rancher-verify-ssl
+              optional: true
+        - name: RANCHER_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: herd-config
+              key: rancher-timeout
+              optional: true
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      terminationGracePeriodSeconds: 30

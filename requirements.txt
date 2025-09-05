@@ -1,0 +1,17 @@
+# Kubernetes operator framework
+kopf>=1.36.0
+
+# Kubernetes client
+kubernetes>=24.2.0
+
+# Data validation
+pydantic>=2.0.0,<3.0.0
+
+# HTTP requests
+requests>=2.28.0
+
+# YAML processing
+pyyaml>=6.0
+
+# Async support
+aiohttp>=3.8.0

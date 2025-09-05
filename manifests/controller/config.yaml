@@ -1,0 +1,26 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: herd-config
+  namespace: herd-system
+  labels:
+    app.kubernetes.io/name: herd
+    app.kubernetes.io/component: config
+data:
+  rancher-verify-ssl: "true"
+  rancher-timeout: "30"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: herd-config
+  namespace: herd-system
+  labels:
+    app.kubernetes.io/name: herd
+    app.kubernetes.io/component: config
+type: Opaque
+stringData:
+  rancher-url: "https://rancher.example.com"  # CHANGE THIS
+  rancher-token: "token-xxxxx:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"  # CHANGE THIS

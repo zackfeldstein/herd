@@ -1,0 +1,98 @@
+# Default values for herd-stack-controller
+# This is a YAML-formatted file.
+
+# Controller image configuration
+controller:
+  image:
+    repository: herd-controller
+    tag: latest
+    pullPolicy: Always
+  
+  # Resource limits for the controller
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  
+  # Number of controller replicas
+  replicas: 1
+  
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+# Rancher configuration
+rancher:
+  # Rancher API URL - must be provided
+  url: ""
+  
+  # Rancher API token - must be provided  
+  token: ""
+  
+  # SSL verification
+  verifySSL: true
+  
+  # Request timeout
+  timeout: 30
+
+# ServiceAccount configuration
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  
+  # Annotations to add to the service account
+  annotations: {}
+  
+  # The name of the service account to use.
+  name: herd-controller
+
+# RBAC configuration
+rbac:
+  # Specifies whether RBAC resources should be created
+  create: true
+
+# Pod security context
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Security context for containers
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+    - ALL
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 8080
+
+# Health check configuration
+healthCheck:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 30
+  timeoutSeconds: 10
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Additional labels
+labels: {}
+
+# Additional annotations
+annotations: {}

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: herd-system
+  labels:
+    app.kubernetes.io/name: herd
+    app.kubernetes.io/component: system

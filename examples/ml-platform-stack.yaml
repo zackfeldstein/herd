@@ -1,0 +1,76 @@
+apiVersion: herd.suse.com/v1
+kind: Stack
+metadata:
+  name: ml-platform
+  namespace: default
+  labels:
+    team: data-science
+    environment: development
+spec:
+  env: dev
+  targets:
+    clusterIds:
+      - c-m-abc123
+      - c-m-def456
+  charts:
+    - name: kubeflow
+      repo: https://charts.kubeflow.org
+      version: "1.7.0"
+      namespace: kubeflow
+      releaseName: kubeflow
+      values:
+        configMapRefs:
+          - name: kubeflow-values
+        inline:
+          istio:
+            enabled: true
+          cert-manager:
+            enabled: true
+      wait: true
+      timeout: "20m"
+      createNamespace: true
+
+    - name: mlflow
+      repo: https://community-charts.github.io/helm-charts
+      version: "0.7.19"
+      namespace: mlflow
+      releaseName: mlflow
+      values:
+        inline:
+          postgresql:
+            enabled: true
+            auth:
+              database: mlflow
+              username: mlflow
+          minio:
+            enabled: true
+            defaultBuckets: "mlflow"
+          serviceAccount:
+            create: true
+      wait: true
+      timeout: "10m"
+      createNamespace: true
+
+    - name: jupyter-hub
+      repo: https://jupyterhub.github.io/helm-chart
+      version: "3.1.0"
+      namespace: jupyter
+      releaseName: jupyterhub
+      values:
+        configMapRefs:
+          - name: jupyterhub-values
+        secretRefs:
+          - name: jupyterhub-secrets
+            key: auth-config.yaml
+        inline:
+          hub:
+            db:
+              type: sqlite-pvc
+            config:
+              Authenticator:
+                auto_login: false
+      dependsOn:
+        - kubeflow
+      wait: true
+      timeout: "15m"
+      createNamespace: true
