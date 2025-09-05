@@ -1,7 +1,7 @@
 # Herd CRD Controller Makefile
 
-# Variables
-DOCKER_REGISTRY ?= docker.io
+# Variables - CHANGE THESE FOR YOUR REGISTRY
+DOCKER_REGISTRY ?= registry.your-domain.com  # Change this to your registry
 IMAGE_NAME ?= herd-controller
 IMAGE_TAG ?= latest
 FULL_IMAGE ?= $(DOCKER_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
@@ -11,12 +11,21 @@ RELEASE_NAME ?= herd-controller
 
 # Build targets
 .PHONY: build
-build: ## Build the controller Docker image
-	docker build -t $(FULL_IMAGE) .
+build: ## Build the controller image with podman
+	podman build -t $(FULL_IMAGE) .
 
 .PHONY: push
-push: build ## Push the controller Docker image
-	docker push $(FULL_IMAGE)
+push: build ## Push the controller image with podman
+	podman push $(FULL_IMAGE)
+
+.PHONY: build-and-push
+build-and-push: ## Build and push using the convenience script
+	./scripts/build-and-push.sh $(IMAGE_TAG)
+
+.PHONY: deploy-image
+deploy-image: push ## Build, push and update running deployment
+	kubectl set image -n $(NAMESPACE) deployment/$(RELEASE_NAME) controller=$(FULL_IMAGE)
+	kubectl rollout status -n $(NAMESPACE) deployment/$(RELEASE_NAME)
 
 # Development targets
 .PHONY: dev-install
@@ -26,6 +35,18 @@ dev-install: ## Install dependencies for local development
 .PHONY: dev-run
 dev-run: ## Run the controller locally (requires kubectl context)
 	PYTHONPATH=. python controller/main.py
+
+# Registry targets
+.PHONY: deploy-registry
+deploy-registry: ## Deploy container registry
+	kubectl apply -f registry/registry-deployment.yaml
+	kubectl apply -f registry/registry-nodeport.yaml
+	@echo "Registry deployed! Check status with: kubectl get pods -n registry"
+	@echo "Registry will be available at: http://NODE_IP:30500"
+
+.PHONY: undeploy-registry
+undeploy-registry: ## Remove container registry
+	kubectl delete -f registry/ --ignore-not-found=true
 
 # Kubernetes targets
 .PHONY: install-crds

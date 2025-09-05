@@ -4,7 +4,7 @@
 # Controller image configuration
 controller:
   image:
-    repository: herd-controller
+    repository: localhost:30500/herd-controller
     tag: latest
     pullPolicy: Always
   

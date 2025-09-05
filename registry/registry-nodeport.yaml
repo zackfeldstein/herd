@@ -1,0 +1,17 @@
+# Alternative: NodePort service for direct access (easier for testing)
+apiVersion: v1
+kind: Service
+metadata:
+  name: registry-nodeport
+  namespace: registry
+  labels:
+    app: registry
+spec:
+  selector:
+    app: registry
+  ports:
+  - name: http
+    port: 5000
+    targetPort: 5000
+    nodePort: 30500  # Registry will be available on any node IP:30500
+  type: NodePort
