@@ -1,25 +1,29 @@
 apiVersion: herd.suse.com/v1
 kind: Stack
 metadata:
-  name: super-simple
+  name: working-test
   namespace: default
   labels:
-    test: basic
+    test: reliable-chart
 spec:
   env: dev
   targets:
     clusterIds:
-      - c-s8khx  # Target downstream cluster
+      - c-qkm2t  # Your working downstream cluster
   charts:
     - name: nginx
       repo: https://charts.bitnami.com/bitnami
       version: "18.1.9"
-      namespace: test-nginx
-      releaseName: simple-nginx
+      namespace: test-working
+      releaseName: working-nginx
       values:
         inline:
-          # Minimal nginx configuration
+          # Minimal nginx that definitely creates pods
           replicaCount: 1
+          image:
+            repository: nginx
+            tag: "1.25"
+            pullPolicy: IfNotPresent
           service:
             type: ClusterIP
             port: 80
@@ -30,10 +34,12 @@ spec:
             limits:
               memory: "128Mi"
               cpu: "100m"
-          # Disable ingress and other complex features
+          # Disable complex features
           ingress:
             enabled: false
           metrics:
+            enabled: false
+          autoscaling:
             enabled: false
       
       wait: true

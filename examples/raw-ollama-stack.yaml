@@ -1,0 +1,28 @@
+apiVersion: herd.suse.com/v1
+kind: Stack
+metadata:
+  name: raw-ollama
+  namespace: default
+  labels:
+    test: raw-resources
+spec:
+  env: dev
+  targets:
+    clusterIds:
+      - c-qkm2t
+  charts:
+    # For now, let's create a simple deployment directly
+    - name: ollama-direct
+      repo: ""  # No repo needed for raw resources
+      version: "1.0.0"
+      namespace: ollama-direct
+      releaseName: ollama-direct
+      values:
+        inline:
+          # We'll use raw Kubernetes resources instead of Helm
+          image: ollama/ollama:latest
+          replicas: 1
+      
+      wait: false
+      timeout: "3m"
+      createNamespace: true

@@ -1,25 +1,25 @@
 apiVersion: herd.suse.com/v1
 kind: Stack
 metadata:
-  name: simple-ollama
+  name: ollama-test
   namespace: default
   labels:
     app: ollama
-    environment: test
+    test: downstream
 spec:
   env: dev
   targets:
     clusterIds:
-      - c-qkm2t  # Working deployment (change to c-s8khx when downstream cluster is ready)
+      - c-qkm2t  # Your working downstream cluster
   charts:
     - name: ollama
       repo: https://otwld.github.io/ollama-helm/
       version: "0.59.0"
-      namespace: ollama
-      releaseName: ollama
+      namespace: ollama-test  # Different namespace to avoid conflicts
+      releaseName: ollama-test
       values:
         inline:
-          # Simple configuration - just the basics
+          # Simple configuration
           replicaCount: 1
           image:
             repository: ollama/ollama
@@ -32,22 +32,18 @@ spec:
           
           resources:
             requests:
+              memory: "1Gi"  # Reduced for testing
+              cpu: "500m"
+            limits:
               memory: "2Gi"
               cpu: "1"
-            limits:
-              memory: "4Gi"
-              cpu: "2"
-          
-          # Disable GPU for simplicity
-          runtimeClassName: ""
           
           # Simple storage - use default storage class
           persistentVolume:
             enabled: true
-            size: "10Gi"
-            storageClass: ""  # Use default storage class
+            size: "5Gi"  # Smaller for testing
+            storageClass: ""
             
-          # No authentication for testing
           ingress:
             enabled: false
       

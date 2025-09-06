@@ -128,15 +128,13 @@ class FleetClient:
                 "spec": {
                     "defaultNamespace": chart.namespace,
                     "helm": {
-                        "chart": chart.name,
-                        "repo": chart.repo,
+                        "chart": f"{chart.repo}",
                         "version": chart.version,
                         "releaseName": chart.releaseName,
                         "values": merged_values,
-                        "atomic": True,
-                        "wait": chart.wait,
-                        "timeout": chart.timeout,
-                        "createNamespace": chart.createNamespace
+                        "timeoutSeconds": self._parse_timeout(chart.timeout),
+                        "createNamespace": chart.createNamespace,
+                        "force": True
                     },
                     "targets": self._create_targets_spec(cluster_ids)
                 }
@@ -215,6 +213,32 @@ class FleetClient:
             })
         
         return targets
+    
+    def _values_to_yaml(self, values: Dict[str, Any]) -> str:
+        """Convert values dictionary to YAML string for Fleet."""
+        import yaml
+        if not values:
+            return ""
+        return yaml.dump(values, default_flow_style=False)
+    
+    def _parse_timeout(self, timeout_str: str) -> int:
+        """Parse timeout string to seconds."""
+        if not timeout_str:
+            return 600  # Default 10 minutes
+        
+        timeout_str = timeout_str.lower().strip()
+        
+        if timeout_str.endswith('s'):
+            return int(timeout_str[:-1])
+        elif timeout_str.endswith('m'):
+            return int(timeout_str[:-1]) * 60
+        elif timeout_str.endswith('h'):
+            return int(timeout_str[:-1]) * 3600
+        else:
+            try:
+                return int(timeout_str)  # Assume seconds if no unit
+            except ValueError:
+                return 600
     
     async def delete_bundle(self, chart: Chart, stack_name: str, cluster_ids: List[str] = None) -> None:
         """Delete a Fleet Bundle."""

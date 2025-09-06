@@ -1,0 +1,33 @@
+apiVersion: herd.suse.com/v1
+kind: Stack
+metadata:
+  name: ultra-simple
+  namespace: default
+  labels:
+    test: basic
+spec:
+  env: dev
+  targets:
+    clusterIds:
+      - c-qkm2t  # Target downstream cluster
+  charts:
+    - name: hello-world
+      repo: https://helm.github.io/examples
+      version: "0.1.0"
+      namespace: hello
+      releaseName: hello-world
+      values:
+        inline:
+          # Minimal configuration - no storage, no special requirements
+          replicaCount: 1
+          image:
+            repository: nginxdemos/hello
+            tag: "latest"
+            pullPolicy: IfNotPresent
+          service:
+            type: ClusterIP
+            port: 80
+      
+      wait: false  # Don't wait to avoid timeouts
+      timeout: "2m"
+      createNamespace: true

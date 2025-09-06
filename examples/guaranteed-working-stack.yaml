@@ -1,0 +1,27 @@
+apiVersion: herd.suse.com/v1
+kind: Stack
+metadata:
+  name: guaranteed-working
+  namespace: default
+  labels:
+    test: basic-pod
+spec:
+  env: dev
+  targets:
+    clusterIds:
+      - c-qkm2t
+  charts:
+    - name: hello-world
+      repo: https://helm.github.io/examples
+      version: "0.1.0"
+      namespace: hello-world
+      releaseName: hello
+      values:
+        inline:
+          # This chart is guaranteed to create a simple pod
+          serviceAccount:
+            create: false
+      
+      wait: true
+      timeout: "2m"
+      createNamespace: true
