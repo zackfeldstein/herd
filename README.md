@@ -2,7 +2,7 @@
 
 **Rancher-Native AI Orchestration Platform**
 
-> **🏢 Enterprise Rancher Product**: Herd is an official **SUSE Rancher product** that extends your Rancher environment with AI-first orchestration capabilities.
+> **🏢 Enterprise Rancher Product**: Herd is a product that extends your Rancher environment with AI-first orchestration capabilities.
 
 Herd provides Kubernetes-native orchestration specifically designed for deploying, managing, and scaling AI/ML workloads across multiple Rancher-managed clusters. Built as a Custom Resource Definition (CRD) and Controller, Herd leverages **Rancher's Fleet** as its deployment engine to transform complex AI infrastructure deployments into simple, declarative Stack definitions that seamlessly deploy across your entire Rancher cluster fleet.
 
