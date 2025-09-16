@@ -109,3 +109,76 @@ class StackStatus(BaseModel):
     deployments: List[ChartDeployment] = Field(default_factory=list)
     targetClusters: List[str] = Field(default_factory=list)
     lastReconcileTime: Optional[str] = None
+
+
+# Pipeline Models
+
+class PipelinePhase(str, Enum):
+    """Phases of pipeline execution."""
+    PENDING = "Pending"
+    RUNNING = "Running"
+    COMPLETED = "Completed"
+    FAILED = "Failed"
+
+
+class StepPhase(str, Enum):
+    """Phases of individual step execution."""
+    PENDING = "Pending"
+    RUNNING = "Running"
+    COMPLETED = "Completed"
+    FAILED = "Failed"
+    SKIPPED = "Skipped"
+
+
+class StepType(str, Enum):
+    """Types of pipeline steps."""
+    INGESTION = "ingestion"
+    VECTOR_DB = "vector-db"
+    LLM = "llm"
+    SERVICE = "service"
+
+
+class PipelineTargets(BaseModel):
+    """Target specification for pipeline clusters."""
+    clusterIds: List[str] = Field(..., description="Explicit list of cluster IDs")
+
+
+class PipelineStep(BaseModel):
+    """Pipeline step specification."""
+    name: str = Field(..., description="Name of the pipeline step")
+    type: StepType = Field(..., description="Type of pipeline step")
+    config: Dict[str, Any] = Field(..., description="Step-specific configuration parameters")
+    dependsOn: Optional[List[str]] = Field(default_factory=list, description="List of steps this step depends on")
+    timeout: Optional[str] = Field(default="10m", description="Timeout for step execution")
+    retries: Optional[int] = Field(default=3, ge=0, le=10, description="Number of retries on failure")
+
+
+class PipelineSpec(BaseModel):
+    """Pipeline specification."""
+    env: str = Field(..., description="Environment name (e.g., dev, staging, prod)")
+    targets: PipelineTargets = Field(..., description="Target cluster specification")
+    steps: List[PipelineStep] = Field(..., description="List of pipeline steps to execute")
+    security: Optional[bool] = Field(default=False, description="Enable security scanning for pipeline components")
+    observability: Optional[bool] = Field(default=False, description="Enable observability monitoring for pipeline")
+
+
+class StepStatus(BaseModel):
+    """Status of a pipeline step execution."""
+    stepName: str
+    stepType: StepType
+    phase: StepPhase
+    message: Optional[str] = None
+    lastUpdated: str
+    retryCount: Optional[int] = Field(default=0, description="Number of retries attempted")
+    executionTime: Optional[str] = Field(None, description="Duration of step execution")
+
+
+class PipelineStatus(BaseModel):
+    """Status of a Pipeline resource."""
+    phase: PipelinePhase
+    message: Optional[str] = None
+    observedGeneration: Optional[int] = None
+    conditions: List[Condition] = Field(default_factory=list)
+    stepStatus: List[StepStatus] = Field(default_factory=list)
+    targetClusters: List[str] = Field(default_factory=list)
+    lastReconcileTime: Optional[str] = None

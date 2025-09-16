@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Herd Stack Controller - Kubernetes operator for managing Stack CRDs.
+Herd Stack Controller - Kubernetes operator for managing Stack and Pipeline CRDs.
 """
 
 import kopf
@@ -13,6 +13,7 @@ import threading
 
 from .stack_manager import StackManager
 from .models import StackSpec, StackStatus, ChartDeployment, DeploymentPhase
+from .pipeline_controller import PipelineManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -43,7 +44,7 @@ async def configure(settings: kopf.OperatorSettings, **_):
     settings.posting.level = logging.INFO
     settings.watching.connect_timeout = 60
     settings.watching.server_timeout = 60
-    logger.info("Herd Stack Controller starting up...")
+    logger.info("Herd Stack and Pipeline Controller starting up...")
     
     # Start health check server
     await start_health_server()
@@ -335,6 +336,10 @@ async def update_stack_status(
         logger.error(f"Failed to update stack status: {e}")
     except Exception as e:
         logger.error(f"Unexpected error updating stack status: {e}")
+
+
+# Import pipeline controller to register its handlers
+from . import pipeline_controller
 
 
 if __name__ == '__main__':
