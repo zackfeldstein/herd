@@ -1,0 +1,167 @@
+apiVersion: herd.suse.com/v1
+kind: Pipeline
+metadata:
+  name: rag-pipeline
+  namespace: default
+  labels:
+    team: ai-ml
+    environment: development
+    pipeline-type: rag
+  annotations:
+    description: "Complete RAG pipeline with data ingestion, vector database, and LLM serving"
+    herd.suse.com/managed-by: "herd-controller"
+spec:
+  env: dev
+  targets:
+    clusterIds:
+      - c-qkm2t  # Development cluster
+  security: true
+  observability: true
+  steps:
+    # Step 1: Data Ingestion
+    - name: data-ingestion
+      type: ingestion
+      config:
+        source:
+          type: "file-system"
+          path: "/data/documents"
+          formats: ["pdf", "txt", "md"]
+        processing:
+          chunkSize: 1000
+          chunkOverlap: 200
+          encoding: "utf-8"
+        output:
+          format: "jsonl"
+          destination: "s3://rag-pipeline-data/processed/"
+        resources:
+          requests:
+            memory: "2Gi"
+            cpu: "1"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
+      timeout: "15m"
+      retries: 3
+
+    # Step 2: Vector Database Setup
+    - name: vector-database
+      type: vector-db
+      config:
+        provider: "qdrant"
+        version: "v1.7.3"
+        configuration:
+          collection:
+            name: "documents"
+            vectorSize: 1536  # OpenAI embedding size
+            distance: "Cosine"
+          storage:
+            type: "persistent"
+            size: "50Gi"
+            storageClass: "standard"
+          scaling:
+            replicas: 2
+            resources:
+              requests:
+                memory: "4Gi"
+                cpu: "2"
+              limits:
+                memory: "8Gi"
+                cpu: "4"
+        embedding:
+          model: "text-embedding-ada-002"
+          provider: "openai"
+          batchSize: 100
+      dependsOn:
+        - data-ingestion
+      timeout: "20m"
+      retries: 2
+
+    # Step 3: LLM Serving
+    - name: llm-serving
+      type: llm
+      config:
+        provider: "ollama"
+        model: "llama2:13b"
+        configuration:
+          gpu:
+            enabled: true
+            memory: "8Gi"
+          resources:
+            requests:
+              memory: "8Gi"
+              cpu: "4"
+              nvidia.com/gpu: 1
+            limits:
+              memory: "16Gi"
+              cpu: "8"
+              nvidia.com/gpu: 1
+          scaling:
+            replicas: 1
+            minReplicas: 1
+            maxReplicas: 3
+          api:
+            port: 11434
+            timeout: "30s"
+            maxTokens: 2048
+            temperature: 0.7
+        endpoints:
+          - name: "chat"
+            path: "/api/chat"
+            method: "POST"
+          - name: "generate"
+            path: "/api/generate"
+            method: "POST"
+      dependsOn:
+        - vector-database
+      timeout: "25m"
+      retries: 2
+
+    # Step 4: RAG Service
+    - name: rag-service
+      type: service
+      config:
+        application:
+          name: "rag-api"
+          version: "1.0.0"
+          language: "python"
+          framework: "fastapi"
+        configuration:
+          vectorDb:
+            host: "vector-database-service"
+            port: 6333
+            collection: "documents"
+          llm:
+            host: "llm-serving-service"
+            port: 11434
+            model: "llama2:13b"
+          api:
+            port: 8000
+            workers: 2
+            timeout: "60s"
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1"
+            limits:
+              memory: "4Gi"
+              cpu: "2"
+          ingress:
+            enabled: true
+            host: "rag-api.dev.example.com"
+            tls:
+              enabled: true
+              secretName: "rag-api-tls"
+        monitoring:
+          metrics:
+            enabled: true
+            port: 9090
+            path: "/metrics"
+          healthCheck:
+            enabled: true
+            path: "/health"
+            interval: "30s"
+            timeout: "10s"
+      dependsOn:
+        - llm-serving
+      timeout: "10m"
+      retries: 3

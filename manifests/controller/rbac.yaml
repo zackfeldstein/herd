@@ -25,6 +25,14 @@ rules:
   resources: ["stacks/status"]
   verbs: ["get", "update", "patch"]
 
+# Pipeline CRD management
+- apiGroups: ["herd.suse.com"]
+  resources: ["pipelines"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["herd.suse.com"]
+  resources: ["pipelines/status"]
+  verbs: ["get", "update", "patch"]
+
 # ConfigMap and Secret access for values
 - apiGroups: [""]
   resources: ["configmaps", "secrets"]

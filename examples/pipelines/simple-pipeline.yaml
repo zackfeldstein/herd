@@ -1,0 +1,71 @@
+apiVersion: herd.suse.com/v1
+kind: Pipeline
+metadata:
+  name: simple-llm-pipeline
+  namespace: default
+  labels:
+    team: ai-ml
+    environment: test
+    pipeline-type: simple
+spec:
+  env: dev
+  targets:
+    clusterIds:
+      - c-qkm2t  # Development cluster
+  security: false
+  observability: false
+  steps:
+    # Step 1: Simple LLM Deployment
+    - name: ollama-deployment
+      type: llm
+      config:
+        provider: "ollama"
+        model: "llama2:7b"
+        configuration:
+          resources:
+            requests:
+              memory: "4Gi"
+              cpu: "2"
+            limits:
+              memory: "8Gi"
+              cpu: "4"
+          api:
+            port: 11434
+            timeout: "30s"
+            maxTokens: 1024
+            temperature: 0.7
+      timeout: "10m"
+      retries: 2
+
+    # Step 2: Simple API Service
+    - name: api-gateway
+      type: service
+      config:
+        application:
+          name: "llm-gateway"
+          version: "1.0.0"
+          language: "python"
+          framework: "fastapi"
+        configuration:
+          llm:
+            host: "ollama-deployment-service"
+            port: 11434
+            model: "llama2:7b"
+          api:
+            port: 8000
+            workers: 1
+            timeout: "60s"
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "0.5"
+            limits:
+              memory: "2Gi"
+              cpu: "1"
+          ingress:
+            enabled: true
+            host: "llm-api.dev.example.com"
+      dependsOn:
+        - ollama-deployment
+      timeout: "5m"
+      retries: 3
